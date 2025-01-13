@@ -1,50 +1,42 @@
 ---
-- name: EC2 Automation Project
-  hosts: localhost
-  gather_facts: no
+- hosts: localhost
+  connection: local
+  gather_facts: False
+
   tasks:
+  - name: Create EC2
+    ec2_instance:
+      key_name: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/keyname', region='us-east-1') }}"
+      security_group: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') }}"
+      image_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ ami_type }}', region='us-east-1') }}"
+      instance_type: "{{ instance_type }}"
+      region: "us-east-1"
+      vpc_subnet_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') }}"
+      instance_role: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ instance_role }}', region='us-east-1') }}"
+      wait: true
+      volumes:
+        - device_name: /dev/xvda
+          ebs:
+            volume_type: gp2
+            volume_size: "{{ root_volume_size }}"
+            delete_on_termination: true
+            encrypted: true
+      name: "{{ instance_name }}"
+      tags:
+        created_by: "{{ created_by }}"
+        Owner: "{{ Owner }}"
+        App_Name: "{{ App_Name }}"
+        Cost_Center: "{{ Cost_Center }}"
+        Business_Unit: "{{ Business_Unit }}"
+      user_data: |
+        #!/bin/bash
+        yum update -y
+        yum install httpd -y
+        service httpd start
+        chkconfig httpd on
+        echo "<html><body><h1>Hello JJTech Team</h1></body></html>" > /var/www/html/index.html
 
-    - name: Debug SSM parameter lookups
-      debug:
-        msg:
-          - "Image ID: {{ lookup('aws_ssm', '/JJTech/ModelBatch/AmazonLinux', region='us-east-1') }}"
-          - "Security Group: {{ lookup('aws_ssm', '/JJTech/ModelBatch/Restricted', region='us-east-1') }}"
-          - "Subnet ID: {{ lookup('aws_ssm', '/JJTech/ModelBatch/AZa', region='us-east-1') }}"
-
-    - name: Create EC2 instance
-      amazon.aws.ec2_instance:
-        name: ec2-automation
-        region: us-east-1
-        image_id: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/AmazonLinux', region='us-east-1') }}"
-        instance_type: t2.micro
-        key_name: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/keyname', region='us-east-1') }}"
-        vpc_subnet_id: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/AZa', region='us-east-1') }}"
-        security_group: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/Restricted', region='us-east-1') }}"
-        tags:
-          App_Name: model-app
-          Business_Unit: sec
-          Cost_Center: A250
-          Owner: Ib.
-          created_by: Ib.
-        user_data: |
-          #!/bin/bash
-          yum update -y
-          yum install httpd -y
-          service httpd start
-          chkconfig httpd on
-          yum install wget -y
-          wget https://github.com/awanmbandi/aws-real-world-projects/raw/web-appplications-src-code/medlife-health-care.zip -P ~/
-          yum install unzip -y
-          unzip ~/medlife-health-care.zip
-          rm -f /var/www/html/index.html
-          cp -rf medlife-master/* /var/www/html/
-        volumes:
-          - device_name: /dev/xvda
-            ebs:
-              volume_size: 8
-              volume_type: gp2
-              delete_on_termination: true
-              encrypted: true
-        state: present
-        wait: true
-        wait_timeout: 600
+#  - debug:
+#      msg: ec2_instance
+#  - debug:
+#      msg: "{{ ec2.results[0].instance_ids }}"
