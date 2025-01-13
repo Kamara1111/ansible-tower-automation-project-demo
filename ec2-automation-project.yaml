@@ -6,19 +6,19 @@
   - name: Debug SSM parameter lookups
     debug:
       msg:
-        - "Image ID: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ image_id }}', region='us-east-1') }}"
-        - "Security Group: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') }}"
-        - "Subnet ID: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') }}"
+        - "Image ID: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ image_id }}', region='us-east-1') | default('ami-12345678') }}"
+        - "Security Group: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') | default('sg-0123456789abcdef') }}"
+        - "Subnet ID: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') | default('subnet-12345678') }}"
 
   - name: Create EC2 instance
     ec2_instance:
       region: "{{ deployment_region }}"
-      key_name: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/keyname', region='us-east-1') }}"
-      security_group: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') }}"
-      image_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ image_id }}', region='us-east-1', default='ami-12345678') }}"
+      key_name: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/keyname', region='us-east-1') | default('default-keyname') }}"
+      security_group: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') | default('sg-0123456789abcdef') }}"
+      image_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ image_id }}', region='us-east-1') | default('ami-12345678') }}"
       instance_type: "{{ instance_type }}"
-      vpc_subnet_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') }}"
-      instance_role: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ instance_role }}', region='us-east-1') }}"
+      vpc_subnet_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') | default('subnet-12345678') }}"
+      instance_role: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ instance_role }}', region='us-east-1') | default('default-instance-role') }}"
       wait: true
       state: "{{ resource_state }}"
       volumes:
