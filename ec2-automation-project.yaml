@@ -1,49 +1,50 @@
-- hosts: localhost
-  connection: local
-  gather_facts: false
-
+---
+- name: EC2 Automation Project
+  hosts: localhost
+  gather_facts: no
   tasks:
-  - name: Debug SSM parameter lookups
-    debug:
-      msg:
-        - "Image ID: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ image_id }}', region='us-east-1') | default('ami-12345678') }}"
-        - "Security Group: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') | default('sg-0123456789abcdef') }}"
-        - "Subnet ID: {{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') | default('subnet-12345678') }}"
 
-  - name: Create EC2 instance
-    ec2_instance:
-      region: "{{ deployment_region }}"
-      key_name: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/keyname', region='us-east-1') | default('default-keyname') }}"
-      security_group: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ security_group }}', region='us-east-1') | default('sg-0123456789abcdef') }}"
-      image_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ image_id }}', region='us-east-1') | default('ami-12345678') }}"
-      instance_type: "{{ instance_type }}"
-      vpc_subnet_id: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ vpc_subnet_id }}', region='us-east-1') | default('subnet-12345678') }}"
-      instance_role: "{{ lookup('aws_ssm', '/JJTech/{{ team }}/{{ instance_role }}', region='us-east-1') | default('default-instance-role') }}"
-      wait: true
-      state: "{{ resource_state }}"
-      volumes:
-        - device_name: /dev/xvda
-          ebs:
-            volume_type: gp2
-            volume_size: "{{ root_volume_size }}"
-            delete_on_termination: true
-            encrypted: true
-      name: "{{ instance_name }}"
-      tags:
-        created_by: "{{ created_by }}"
-        Owner: "{{ Owner }}"
-        App_Name: "{{ App_Name }}"
-        Cost_Center: "{{ Cost_Center }}"
-        Business_Unit: "{{ Business_Unit }}"
-      user_data: |
-        #!/bin/bash
-        yum update -y
-        yum install httpd -y
-        service httpd start
-        chkconfig httpd on
-        yum install wget
-        wget https://github.com/awanmbandi/aws-real-world-projects/raw/web-appplications-src-code/medlife-health-care.zip -P ~/
-        yum install unzip -y 
-        unzip ~/medlife-health-care.zip
-        rm -f /var/www/html/index.html 
-        cp -rf medlife-master/* /var/www/html/
+    - name: Debug SSM parameter lookups
+      debug:
+        msg:
+          - "Image ID: {{ lookup('aws_ssm', '/JJTech/ModelBatch/AmazonLinux', region='us-east-1') }}"
+          - "Security Group: {{ lookup('aws_ssm', '/JJTech/ModelBatch/Restricted', region='us-east-1') }}"
+          - "Subnet ID: {{ lookup('aws_ssm', '/JJTech/ModelBatch/AZa', region='us-east-1') }}"
+
+    - name: Create EC2 instance
+      amazon.aws.ec2_instance:
+        name: ec2-automation
+        region: us-east-1
+        image_id: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/AmazonLinux', region='us-east-1') }}"
+        instance_type: t2.micro
+        key_name: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/keyname', region='us-east-1') }}"
+        vpc_subnet_id: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/AZa', region='us-east-1') }}"
+        security_group: "{{ lookup('aws_ssm', '/JJTech/ModelBatch/Restricted', region='us-east-1') }}"
+        tags:
+          App_Name: model-app
+          Business_Unit: sec
+          Cost_Center: A250
+          Owner: Ib.
+          created_by: Ib.
+        user_data: |
+          #!/bin/bash
+          yum update -y
+          yum install httpd -y
+          service httpd start
+          chkconfig httpd on
+          yum install wget -y
+          wget https://github.com/awanmbandi/aws-real-world-projects/raw/web-appplications-src-code/medlife-health-care.zip -P ~/
+          yum install unzip -y
+          unzip ~/medlife-health-care.zip
+          rm -f /var/www/html/index.html
+          cp -rf medlife-master/* /var/www/html/
+        volumes:
+          - device_name: /dev/xvda
+            ebs:
+              volume_size: 8
+              volume_type: gp2
+              delete_on_termination: true
+              encrypted: true
+        state: present
+        wait: true
+        wait_timeout: 600
